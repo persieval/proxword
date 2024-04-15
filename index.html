@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Proximity Word Search Tool</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 700px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #fff;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background: #5cb85c;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #4cae4c;
+        }
+        .highlight {
+            background-color: yellow;
+        }
+        #results {
+            margin-top: 20px;
+            padding: 10px;
+            background: #e2e2e2;
+            border-radius: 5px;
+        }
+        .word-output {
+            margin-bottom: 20px;
+        }
+        textarea {
+            width: calc(100% - 20px);
+            max-width: calc(100% - 20px);
+            min-width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            resize: vertical;
+            overflow: auto;
+        }
+        .checkbox-group {
+            margin-bottom: 10px;
+        }
+        .credit {
+    text-align: center;
+    margin-top: -10px;
+    margin-bottom: 20px;
+    font-size: 0.8em;
+}
+
+.credit a {
+    color: #a949f7;
+    text-decoration: none;
+}
+
+.credit a:hover {
+    text-decoration: underline;
+}
+
+#loading p {
+    color: #555;
+    font-weight: bold;
+}
+
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Proximity Word Search Tool</h1>
+        <p class="credit">made by <a href="https://github.com/persieval" target="_blank">persieval</a></p>
+        <label for="textInput">Your Text:</label>
+        <textarea id="textInput" placeholder="Enter your text here..." rows="10"></textarea>
+
+        <label for="distanceInput">Distance (words): <span id="distanceValue">50</span></label>
+        <input type="range" id="distanceInput" min="1" max="3000" value="50">
+
+        <label for="specificWordInput">Specific word (optional):</label>
+        <input type="text" id="specificWordInput" placeholder="Enter a specific word">
+
+        <label for="exclusionList">Words to exclude (comma separated):</label>
+        <input type="text" id="exclusionList" placeholder="e.g., the, an, a">
+
+        <div class="checkbox-group">
+            <label>
+                <input type="checkbox" id="excludeTwoOrLess">
+                Exclude words 2 letters or less
+            </label>
+            <label>
+                <input type="checkbox" id="excludeThreeOrLess" checked>
+                Exclude words 3 letters or less
+            </label>
+            <label>
+                <input type="checkbox" id="excludeFourOrLess">
+                Exclude words 4 letters or less
+            </label>
+            <label>
+                <input type="checkbox" id="excludeDeterminers">
+                Exclude determiners (the, a, an, this, that, his, hers, theirs...)
+            </label>
+        </div>
+
+        <button onclick="performSearch()">Search</button>
+        <div id="loading" style="display: none; text-align: center;">
+            <p>Loading...</p>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        document.getElementById('distanceInput').oninput = function() {
+            document.getElementById('distanceValue').textContent = this.value;
+        }
+
+        function performSearch() {
+            const text = document.getElementById('textInput').value;
+            const distance = parseInt(document.getElementById('distanceInput').value);
+            const specificWord = document.getElementById('specificWordInput').value.toLowerCase();
+            const excludeTwoOrLess = document.getElementById('excludeTwoOrLess').checked;
+            const excludeThreeOrLess = document.getElementById('excludeThreeOrLess').checked;
+            const excludeFourOrLess = document.getElementById('excludeFourOrLess').checked;
+            const excludeDeterminers = document.getElementById('excludeDeterminers').checked;
+            const exclusionList = document.getElementById('exclusionList').value.split(',').map(word => word.trim().toLowerCase());
+            const words = text.split(/\s+/);
+            const results = [];
+            const wordMap = new Map();
+
+            // Determiners list
+            const determiners = new Set(['the', 'a', 'an', 'this', 'that', 'these', 'those', 'my', 'your', 'his', 'her', 'its', 'our', 'their', 'few', 'little', 'much', 'many', 'lot of', 'plenty of', 'enough', 'all', 'both', 'half', 'either', 'neither', 'each', 'every', 'other', 'another', 'such', 'what', 'rather', 'quite']);
+            
+            // Determine the shortest word length to exclude
+            let minLength = excludeFourOrLess ? 4 : excludeThreeOrLess ? 3 : excludeTwoOrLess ? 2 : 0;
+
+            // Build a map to find and store word indices
+            for (let i = 0; i < words.length; i++) {
+                let word = words[i].toLowerCase();
+                // Exclude words based on user inputs
+                if (word.length <= minLength || exclusionList.includes(word) || (excludeDeterminers && determiners.has(word))) {
+                    continue;
+                }
+                if (!wordMap.has(word)) {
+                    wordMap.set(word, []);
+                }
+                wordMap.get(word).push(i);
+            }
+
+            // Find repeated words or a specific word within the specified distance
+            for (const [word, indices] of wordMap.entries()) {
+                if (specificWord && specificWord !== word) continue;
+                for (let i = 0; i < indices.length; i++) {
+                    for (let j = i + 1; j < indices.length && indices[j] <= indices[i] + distance; j++) {
+                        const start = Math.max(0, indices[i]);
+                        const end = Math.min(words.length, indices[j] + 1);
+                        const snippet = words.slice(start, end).join(' ');
+                        results.push(snippet.replace(new RegExp(`\\b${word}\\b`, 'gi'), '<span class="highlight">$&</span>'));
+                    }
+                }
+            }
+
+            document.getElementById('results').innerHTML = results.join('<br><br>');
+        }
+    </script>
+</body>
+</html>
