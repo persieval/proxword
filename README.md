@@ -1,6 +1,6 @@
 # ProxWord
 
-Welcome to the repository for ProxWord, a powerful web-based tool designed to enhance your writing by helping you identify and manage the proximity of word repetitions within your text. This tool is ideal for writers, editors, and anyone looking to refine their written work.
+Welcome to the repository for ProxWord, a web-based tool designed to enhance your writing by helping you identify and manage the proximity of word repetitions within your text. This tool is ideal for writers, editors, and anyone looking to refine their written work.
 
 👉 Check out the live tool here: [ProxWord](https://proxword.vercel.app/)
 
